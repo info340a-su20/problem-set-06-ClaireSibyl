@@ -35,6 +35,24 @@ const EXAMPLE_SEARCH_RESULTS = {results:[{
 //(e.g., `EXAMPLE_SEARCH_RESULTS.results[0]).
 
 
+//one "track" is an object from the results array; with an artistName, trackName, previewURL, and artworkUrl100
+function renderTrack(track) {
+
+  let newTrackImg = document.createElement('img');
+
+  newTrackImg.src = track.artworkUrl100;
+  newTrackImg.alt = track.trackName;
+  newTrackImg.title = track.trackName;
+
+  newTrackImg.addEventListener('click', function(){
+
+    playTrackPreview(track, this)
+
+  });
+
+  document.getElementById('records').appendChild(newTrackImg);
+
+}
 
 //Define a function `renderSearchResults()` that takes in an object with a
 //`results` property containing an array of music tracks; the same format as
@@ -45,12 +63,28 @@ const EXAMPLE_SEARCH_RESULTS = {results:[{
 //
 //You can test this function by passing it the `EXAMPLE_SEARCH_RESULTS` object.
 
+function renderSearchResults(searchResults) {
 
+  //clear all previous results
+  document.getElementById('records').innerHTML = "";
+
+  if (searchResults.results == undefined || searchResults.results.length == 0) {
+
+    renderError(new Error("No results found"));
+
+  } else {
+    
+    //for each array item (object) in the results array of the searchResults object, call renderTrack
+    searchResults.results.forEach(renderTrack);
+  
+  }
+}
 
 //Now it's the time to practice using `fetch()`! First, modify the `index.html`
 //file to load the polyfills for _BOTH_ the fetch() function and Promises, so
 //that your example will work on Internet Explorer.
 //Use version 2.0.4 of the `fetch` polyfill.
+
 
 
 //Define a function `fetchTrackList()` that takes in a "search term" string as a
@@ -69,8 +103,29 @@ const EXAMPLE_SEARCH_RESULTS = {results:[{
 //your favorite band (you CANNOT test it with the search button yet!)
 const URL_TEMPLATE = "https://itunes.apple.com/search?entity=song&limit=25&term={searchTerm}";
 
+function fetchTrackList(term) {
 
+  let url = URL_TEMPLATE.replace("{searchTerm}", term);
 
+  toggleSpinner();
+
+  let promise = fetch(url)
+  .then(function(response) {
+    let dataPromise = response.json();
+    return dataPromise;
+    
+  })
+  .then(function(data) {
+    renderSearchResults(data);
+  })
+  .catch(function(error){
+    renderError(error);
+  })
+  .then(toggleSpinner);
+
+  return promise;
+
+}
 
 //Add an event listener to the "search" button so that when it is clicked (and 
 //the the form is submitted) your `fetchTrackList()` function is called with the
@@ -78,13 +133,30 @@ const URL_TEMPLATE = "https://itunes.apple.com/search?entity=song&limit=25&term=
 //the form from being submitted as usual (and navigating to a different page).
 
 
+let searchButton = document.querySelector('button');
+
+//'click' not 'submit'
+searchButton.addEventListener('click', function(event) {
+  event.preventDefault();
+  let searchQueryInput = document.getElementById('searchQuery');
+  fetchTrackList(searchQueryInput.value);
+});
 
 //Next, add some error handling to the page. Define a function `renderError()`
 //that takes in an "Error object" and displays that object's `message` property
 //on the page. Display this by creating a `<p class="alert alert-danger">` and
 //placing that alert inside the `#records` element.
 
+function renderError(error) {
 
+  let newAlertP = document.createElement('p');
+  newAlertP.classList.add("alert", "alert-danger");
+
+  newAlertP.textContent = error.message;
+
+  document.getElementById('records').appendChild(newAlertP);
+
+}
 
 //Add the error handing to your program in two ways:
 //(1) Add a `.catch()` callback to the AJAX call in `fetchTrackList()` that
@@ -94,6 +166,7 @@ const URL_TEMPLATE = "https://itunes.apple.com/search?entity=song&limit=25&term=
 //    it an new Error object: `new Error("No results found")`
 //
 //You can test this error handling by trying to search with an empty query.
+
 
 
 //Finally, add a "loading spinner" as user feedback in case the download takes a
@@ -108,7 +181,13 @@ const URL_TEMPLATE = "https://itunes.apple.com/search?entity=song&limit=25&term=
 //after the ENTIRE request is completed (including after any error catching---
 //download the data and `catch()` the error, and `then()` show the spinner.
 
+function toggleSpinner() {
 
+  let spinnerEle = document.querySelector('.fa-spinner');
+
+  spinnerEle.classList.toggle('d-none');
+
+}
 
 
 //Optional extra: add the ability to "play" each track listing by clicking
@@ -142,6 +221,7 @@ function playTrackPreview(track, img) {
     img.classList.toggle('fa-spin'); //toggle the spinning
   }
 }
+
 
 //Make functions and variables available to tester. DO NOT MODIFY THIS.
 if(typeof module !== 'undefined' && module.exports){
